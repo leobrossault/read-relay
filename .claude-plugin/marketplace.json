@@ -1,0 +1,17 @@
+{
+  "name": "lbrossault",
+  "description": "Claude Code plugins by Léo Brossault.",
+  "owner": {
+    "name": "Léo Brossault"
+  },
+  "plugins": [
+    {
+      "name": "read-relay",
+      "source": "./plugins/read-relay",
+      "description": "Keeps bulk file reading out of the main context by relaying large reads to a cheap read-only subagent.",
+      "version": "0.2.0",
+      "license": "MIT",
+      "keywords": ["context", "tokens", "subagent", "cost", "hooks"]
+    }
+  ]
+}

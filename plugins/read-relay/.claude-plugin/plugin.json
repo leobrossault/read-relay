@@ -1,0 +1,47 @@
+{
+  "name": "read-relay",
+  "displayName": "Read Relay",
+  "version": "0.2.0",
+  "description": "Keeps bulk file reading out of the main context by relaying large reads to a cheap read-only subagent.",
+  "author": {
+    "name": "Léo Brossault"
+  },
+  "license": "MIT",
+  "keywords": [
+    "context",
+    "tokens",
+    "subagent",
+    "cost",
+    "hooks"
+  ],
+  "userConfig": {
+    "threshold_lines": {
+      "type": "number",
+      "title": "Line threshold",
+      "description": "Reads that would pull in more than this many lines are relayed to the bulk-reader subagent. Spotify's shunt uses 350; the right value depends on your codebase, so measure before tuning. Also settable as READ_RELAY_THRESHOLD_LINES.",
+      "default": 400,
+      "min": 50,
+      "max": 1000000
+    },
+    "max_bounces": {
+      "type": "number",
+      "title": "Bounces per file",
+      "description": "How many times one file may be refused in a session before it is let through. 1 nudges once and never blocks a deliberate retry. 0 disables the guard. Higher values push harder but always leave a way out. Also settable as READ_RELAY_MAX_BOUNCES.",
+      "default": 1,
+      "min": 0,
+      "max": 10
+    },
+    "guard_bash": {
+      "type": "boolean",
+      "title": "Also guard bash reads",
+      "description": "Block plain cat / less / more / bat on large files. Piped, redirected and already-bounded commands are always allowed. Also settable as READ_RELAY_GUARD_BASH.",
+      "default": true
+    },
+    "skip_patterns": {
+      "type": "string",
+      "title": "Always-allow patterns",
+      "description": "Comma-separated globs that are never relayed, matched against the full path and the basename. Also settable as READ_RELAY_SKIP_PATTERNS.",
+      "default": "*.lock,*-lock.json,*-lock.yaml,*.min.js,*.min.css,*.map,*.snap,*.svg,*.csv,*.tsv"
+    }
+  }
+}
