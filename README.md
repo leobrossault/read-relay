@@ -16,12 +16,14 @@ instead of an external model, so there is no infrastructure to run.
 ## Install
 
 ```bash
-claude plugin marketplace add lbrossault/read-relay
+claude plugin marketplace add leobrossault/read-relay
 claude plugin install read-relay@lbrossault
 ```
 
-The `@lbrossault` part names the marketplace this repo publishes, not the
-plugin. One marketplace can list many plugins.
+Two different names on purpose. `leobrossault/read-relay` is the GitHub repo
+being added. `@lbrossault` is the marketplace that repo publishes, which is
+just a label inside `marketplace.json`, and one marketplace can list many
+plugins.
 
 Requires Python 3 on your PATH. No other dependencies.
 
@@ -36,7 +38,7 @@ Three pieces, each of which is a documented Claude Code feature:
    `threshold_lines` lines, it is denied with a message telling the model to
    relay it instead. This is the part that makes the saving reliable rather
    than aspirational.
-3. **`read-relay` skill**. Teaches the model to delegate *before* it gets
+3. **`read-relay` skill**. Teaches the model to delegate _before_ it gets
    blocked, and how to write a prompt the subagent can actually act on.
 
 Without the hook you have a suggestion. With it you have a rule.
@@ -45,12 +47,12 @@ Without the hook you have a suggestion. With it you have a rule.
 
 Set these in `/plugin` after installing.
 
-| Option | Default | What it does |
-| --- | --- | --- |
-| `threshold_lines` | `400` | Reads that would pull in more than this many lines are relayed. See "Picking a threshold" below. |
-| `max_bounces` | `1` | How many times one file may be refused in a session before it is let through. `0` disables the guard. |
-| `guard_bash` | `true` | Also blocks plain `cat` / `less` / `more` / `bat` on large files. Piped, redirected and already-bounded commands are always allowed. |
-| `skip_patterns` | `*.lock,*-lock.json,*.min.js,…` | Comma-separated globs that are never relayed, matched on the full path and the basename. |
+| Option            | Default                         | What it does                                                                                                                         |
+| ----------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `threshold_lines` | `400`                           | Reads that would pull in more than this many lines are relayed. See "Picking a threshold" below.                                     |
+| `max_bounces`     | `1`                             | How many times one file may be refused in a session before it is let through. `0` disables the guard.                                |
+| `guard_bash`      | `true`                          | Also blocks plain `cat` / `less` / `more` / `bat` on large files. Piped, redirected and already-bounded commands are always allowed. |
+| `skip_patterns`   | `*.lock,*-lock.json,*.min.js,…` | Comma-separated globs that are never relayed, matched on the full path and the basename.                                             |
 
 Every option is also readable as a plain environment variable, named
 `READ_RELAY_` plus the option in upper case, for example
