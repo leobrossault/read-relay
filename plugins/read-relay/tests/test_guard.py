@@ -12,9 +12,10 @@ TMP = tempfile.mkdtemp(prefix="read-relay-test-")
 BIG = os.path.join(TMP, "big.txt"); SMALL = os.path.join(TMP, "small.txt")
 with open(BIG, "w") as f: f.write("".join(f"line {i}\n" for i in range(1, 1001)))
 with open(SMALL, "w") as f: f.write("".join(f"line {i}\n" for i in range(1, 51)))
-def run(tool, inp, env=None):
+def run(tool, inp, env=None, extra=None):
     e = dict(os.environ); e.pop("READ_RELAY_OFF", None); e.update(env or {})
-    p = subprocess.run([sys.executable, G], input=json.dumps({"session_id": "t-"+uuid.uuid4().hex[:8], "tool_name": tool, "tool_input": inp}), capture_output=True, text=True, env=e)
+    payload = {"session_id": "t-"+uuid.uuid4().hex[:8], "tool_name": tool, "tool_input": inp, **(extra or {})}
+    p = subprocess.run([sys.executable, G], input=json.dumps(payload), capture_output=True, text=True, env=e)
     return "DENY" if '"deny"' in p.stdout else "ALLOW"
 cases = [
  ("Read big",                  "Read", {"file_path": BIG}, "DENY"),
@@ -41,11 +42,14 @@ cases = [
  ("READ_RELAY_OFF",            "Read", {"file_path": BIG}, "ALLOW", {"READ_RELAY_OFF": "1"}),
  ("guard_bash=false",          "Bash", {"command": f"wc -l {BIG} && cat {BIG}"}, "ALLOW", {"READ_RELAY_GUARD_BASH": "false"}),
  ("threshold 2000",            "Read", {"file_path": BIG}, "ALLOW", {"READ_RELAY_THRESHOLD_LINES": "2000"}),
+ ("bulk-reader itself (ns)",   "Read", {"file_path": BIG}, "ALLOW", None, {"agent_type": "read-relay:bulk-reader", "agent_id": "x"}),
+ ("bulk-reader itself (bare)", "Read", {"file_path": BIG}, "ALLOW", None, {"agent_type": "bulk-reader"}),
+ ("other subagent",            "Read", {"file_path": BIG}, "DENY",  None, {"agent_type": "Explore", "agent_id": "y"}),
 ]
 fail = 0
 for c in cases:
-    name, tool, inp, want = c[:4]; env = c[4] if len(c) > 4 else None
-    got = run(tool, inp, env); ok = got == want; fail += not ok
+    name, tool, inp, want = c[:4]; env = c[4] if len(c) > 4 else None; extra = c[5] if len(c) > 5 else None
+    got = run(tool, inp, env, extra); ok = got == want; fail += not ok
     print(("ok  " if ok else "FAIL"), f"{name:28} want={want} got={got}")
 # bounce: same session, second try passes
 sid = "bounce-"+uuid.uuid4().hex[:6]

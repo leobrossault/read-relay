@@ -64,16 +64,22 @@ Escape hatch: `READ_RELAY_OFF=1 claude` disables the guard for one session
 without uninstalling anything.
 
 `max_bounces` deserves a word. The guard never blocks a file forever, by
-design. Refusing every attempt would also refuse the `bulk-reader` subagent
-when it goes to read that same file, and the relay would deadlock. So each
-refusal is counted, and once a file has been bounced `max_bounces` times in a
-session it is simply allowed through. Raise it to push harder, never to make
-the block absolute.
+design. Each refusal is counted, and once a file has been bounced
+`max_bounces` times in a session it is simply allowed through, so a
+deliberate retry always works. Raise it to push harder, never to make the
+block absolute.
+
+The `bulk-reader` subagent itself is never bounced. Claude Code tags hook
+payloads fired inside a subagent with its `agent_type`, and the guard lets that
+agent read whatever it was sent. On an older build without that field the
+bounce cap still keeps the relay from deadlocking, at the cost of one wasted
+turn per relayed file.
 
 ## What it deliberately leaves alone
 
-Binaries, images and PDFs. Files that do not exist. Ranged reads with a `limit`
-at or under the threshold. Shell commands that pipe, redirect or substitute. The
+Binaries, images and PDFs. Files that do not exist. Reads made by the
+`bulk-reader` subagent itself. Ranged reads with a `limit` at or under the
+threshold. Shell commands that pipe, redirect or substitute. The
 `Edit` and `Write` tools, always. Any payload it cannot parse.
 
 The guard fails open on every error. A plugin that breaks your session to save

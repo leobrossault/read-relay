@@ -42,6 +42,7 @@ OPAQUE_SUFFIXES = {
     ".mp3", ".mp4", ".mov", ".wav", ".so", ".dylib", ".dll", ".exe", ".wasm",
 }
 
+RELAY_AGENT = "bulk-reader"
 DUMPERS = ("cat", "less", "more", "bat")
 RANGED = ("head", "tail")
 
@@ -343,6 +344,14 @@ def main() -> None:
         allow()
 
     if os.environ.get("READ_RELAY_OFF", "").strip().lower() in ("1", "true", "yes", "on"):
+        allow()
+
+    # The relay target itself. Claude Code sets `agent_type` when a hook fires
+    # inside a subagent, namespaced for plugin agents ("read-relay:bulk-reader").
+    # Bouncing the bulk-reader would only cost it a wasted turn, so let it
+    # read. Without this field (older builds) the bounce cap still protects it.
+    agent_type = payload.get("agent_type")
+    if isinstance(agent_type, str) and agent_type.rsplit(":", 1)[-1] == RELAY_AGENT:
         allow()
 
     tool = payload.get("tool_name") or ""
