@@ -24,6 +24,7 @@ import json
 import os
 import re
 import shlex
+import stat
 import sys
 import tempfile
 import time
@@ -168,9 +169,18 @@ def state_dir() -> str | None:
         if os.path.islink(path):
             warn("state dir %s is a symlink, refusing to use it" % path)
             return None
-        os.makedirs(path, exist_ok=True)
-        if not os.path.isdir(path):
+        os.makedirs(path, mode=0o700, exist_ok=True)
+        info = os.lstat(path)
+        if not stat.S_ISDIR(info.st_mode):
             return None
+        # On a shared temp dir another local user could have created this
+        # path first. Refuse anything not owned by us or open to others,
+        # rather than reading state someone else can write.
+        if hasattr(os, "getuid") and info.st_uid != os.getuid():
+            warn("state dir %s is owned by uid %d, refusing to use it" % (path, info.st_uid))
+            return None
+        if info.st_mode & 0o077:
+            os.chmod(path, 0o700)
         return path
     except OSError as exc:
         warn("cannot create state dir %s (%s)" % (path, exc.__class__.__name__))
@@ -212,13 +222,21 @@ def bounce_count(session_id: str, key: str) -> int | None:
     previous = seen.get(key, [0, now])[0]
     seen[key] = [previous + 1, now]
 
+    tmp = None
     try:
-        tmp = state_path + ".%d.tmp" % os.getpid()
-        with open(tmp, "w", encoding="utf-8") as handle:
+        # mkstemp opens with O_EXCL and 0600, so a planted symlink or a
+        # guessable name can never redirect this write.
+        fd, tmp = tempfile.mkstemp(prefix=safe + ".", suffix=".tmp", dir=directory)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
             json.dump(seen, handle)
         os.replace(tmp, state_path)
     except OSError as exc:
         warn("cannot persist state (%s)" % exc.__class__.__name__)
+        if tmp:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
         return None
 
     return previous

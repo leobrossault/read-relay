@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/bin/guard-read.py",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/guard-read.py\"",
             "timeout": 10
           }
         ]

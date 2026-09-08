@@ -53,4 +53,19 @@ r = [ '"deny"' in subprocess.run([sys.executable, G], input=json.dumps({"session
 ok = r == [True, False]; fail += not ok
 print(("ok  " if ok else "FAIL"), f"{'bounce: deny then allow':28} got={r}")
 
+# State directory hardening: fresh dir is 0700, a loose one is tightened, and
+# a planted symlink at a guessable temp name is never followed.
+def state_probe(name, prep, check):
+    t = tempfile.mkdtemp(prefix="read-relay-state-"); d = os.path.join(t, "read-relay-%d" % os.getuid())
+    prep(t, d)
+    e = dict(os.environ); e["TMPDIR"] = t; e.pop("READ_RELAY_OFF", None)
+    p = subprocess.run([sys.executable, G], input=json.dumps({"session_id": "st", "tool_name": "Read", "tool_input": {"file_path": BIG}}), capture_output=True, text=True, env=e)
+    ok = '"deny"' in p.stdout and check(t, d)
+    print(("ok  " if ok else "FAIL"), name); return not ok
+fail += state_probe("state dir created 0700", lambda t, d: None, lambda t, d: os.stat(d).st_mode & 0o777 == 0o700)
+fail += state_probe("loose state dir tightened", lambda t, d: os.makedirs(d, 0o777), lambda t, d: os.stat(d).st_mode & 0o777 == 0o700)
+def plant(t, d):
+    os.makedirs(d, 0o700); os.symlink(os.path.join(t, "victim"), os.path.join(d, "st.json.%d.tmp" % os.getpid()))
+fail += state_probe("planted tmp symlink ignored", plant, lambda t, d: not os.path.exists(os.path.join(t, "victim")) and os.path.isfile(os.path.join(d, "st.json")))
+
 print("\n%d failure(s)" % fail); sys.exit(1 if fail else 0)
