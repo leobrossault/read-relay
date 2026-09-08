@@ -228,16 +228,33 @@ def bounce_count(session_id: str, key: str) -> int | None:
 # Bash parsing
 # --------------------------------------------------------------------------
 
-SHELL_META = ("|", ">", "<", "&&", "||", ";", "$(", "`", "\n")
+# Operators that merely sequence commands. Each side is judged on its own, so
+# `wc -l f && cat f` no longer hides the dump behind the count.
+CHAIN_SPLIT = re.compile(r"\s*(?:&&|\|\||;|\n)\s*")
+# Within one segment, any of these means the output is consumed, bounded or
+# too ambiguous to judge, so the segment is left alone.
+SEGMENT_META = ("|", ">", "<", "$(", "`", "&")
 
 
 def bash_target(command: str, threshold: int) -> str | None:
     """Return the file a plain reader command would dump, or None.
 
-    Anything piped, redirected, chained or already bounded is left alone: it
-    is either cheap or too ambiguous to judge safely.
+    The command is split on `&&`, `||`, `;` and newlines and every segment is
+    judged separately. A segment that pipes, redirects or substitutes is left
+    alone: it is either cheap or too ambiguous to judge safely. The first
+    segment that is a plain dump of one large file wins.
     """
-    if not command or any(token in command for token in SHELL_META):
+    if not command:
+        return None
+    for segment in CHAIN_SPLIT.split(command):
+        target = _segment_target(segment, threshold)
+        if target is not None:
+            return target
+    return None
+
+
+def _segment_target(command: str, threshold: int) -> str | None:
+    if not command or any(token in command for token in SEGMENT_META):
         return None
     try:
         parts = shlex.split(command)

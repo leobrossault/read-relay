@@ -51,7 +51,7 @@ Set these in `/plugin` after installing.
 | ----------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `threshold_lines` | `400`                           | Reads that would pull in more than this many lines are relayed. See "Picking a threshold" below.                                     |
 | `max_bounces`     | `1`                             | How many times one file may be refused in a session before it is let through. `0` disables the guard.                                |
-| `guard_bash`      | `true`                          | Also blocks plain `cat` / `less` / `more` / `bat` on large files. Piped, redirected and already-bounded commands are always allowed. |
+| `guard_bash`      | `true`                          | Also blocks plain `cat` / `less` / `more` / `bat` on large files, even inside a `&&` / `;` chain. Piped, redirected and already-bounded commands are always allowed. |
 | `skip_patterns`   | `*.lock,*-lock.json,*.min.js,…` | Comma-separated globs that are never relayed, matched on the full path and the basename.                                             |
 
 Every option is also readable as a plain environment variable, named
@@ -73,7 +73,7 @@ the block absolute.
 ## What it deliberately leaves alone
 
 Binaries, images and PDFs. Files that do not exist. Ranged reads with a `limit`
-at or under the threshold. Shell commands that pipe, redirect or chain. The
+at or under the threshold. Shell commands that pipe, redirect or substitute. The
 `Edit` and `Write` tools, always. Any payload it cannot parse.
 
 The guard fails open on every error. A plugin that breaks your session to save
@@ -109,9 +109,11 @@ fixtures, a config you know by heart. Hence the bounded bounce count, the skip
 patterns and the kill switch.
 
 **The bash guard is a speed bump, not a wall.** It catches the obvious
-`cat big-file.ts`, and it deliberately ignores anything piped, redirected or
-already bounded. A determined agent can still dump a file some other way. The
-point is to stop the cheap accident, not to win an arms race.
+`cat big-file.ts`, and the equally common `wc -l big-file.ts && cat big-file.ts`,
+because a chained command is split on `&&`, `||`, `;` and newlines and every
+part is judged on its own. It deliberately ignores anything piped, redirected,
+substituted or already bounded. A determined agent can still dump a file some
+other way. The point is to stop the cheap accident, not to win an arms race.
 
 **It is a floor, not a ceiling.** Claude Code already ships an `Explore`
 subagent for read-only search. If that covers your use, you may not need this

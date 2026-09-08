@@ -9,7 +9,7 @@
       "name": "read-relay",
       "source": "./plugins/read-relay",
       "description": "Keeps bulk file reading out of the main context by relaying large reads to a cheap read-only subagent.",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "license": "MIT",
       "keywords": ["context", "tokens", "subagent", "cost", "hooks"]
     }

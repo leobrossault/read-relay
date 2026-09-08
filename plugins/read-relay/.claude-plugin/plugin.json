@@ -1,7 +1,7 @@
 {
   "name": "read-relay",
   "displayName": "Read Relay",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Keeps bulk file reading out of the main context by relaying large reads to a cheap read-only subagent.",
   "author": {
     "name": "Léo Brossault"
@@ -34,7 +34,7 @@
     "guard_bash": {
       "type": "boolean",
       "title": "Also guard bash reads",
-      "description": "Block plain cat / less / more / bat on large files. Piped, redirected and already-bounded commands are always allowed. Also settable as READ_RELAY_GUARD_BASH.",
+      "description": "Block plain cat / less / more / bat on large files, even inside a && / ; chain. Piped, redirected and already-bounded commands are always allowed. Also settable as READ_RELAY_GUARD_BASH.",
       "default": true
     },
     "skip_patterns": {
